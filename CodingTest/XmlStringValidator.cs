@@ -1,196 +1,200 @@
-﻿using System.Reflection.Metadata.Ecma335;
-using System.Runtime.CompilerServices;
-
-namespace TakeHomeCodingTest
+﻿namespace XmlStringValidator
 {
     public class XMLStringValidator
     {
         private enum Type
         {
             InValid,
-            StartingElement,
-            EndingElement,
-            Contain,
+            OpeningTag,
+            ClosingTag,
+            Content,
         }
 
+        /// <summary>
+        /// Determine Xml string which is valid or not
+        /// </summary>
+        /// <param name="xml">xml input</param>
+        /// <returns>Xml string is valid : true, not valid : false</returns>
         public bool DetermineXml(string xml)
         {
             bool isValid = true;
             int pointFocused = 0;
             string body = "";
             Type type = Type.InValid;
-            Stack<string> startingElements = new Stack<string>();
+            Stack<string> openingTags = new Stack<string>();
             Stack<Type> types = new Stack<Type>();
 
-            //check input
-            if (string.IsNullOrEmpty(xml))
-            {
-                Console.WriteLine("XML string is null, so");
-                return false;
-            }
+            //check input null or not
+            if (string.IsNullOrEmpty(xml)) return false;
+            
+            isValid  = AssignString(xml, ref pointFocused, ref type, ref body);
+            if (isValid != true)    return false;
 
-            //only tagHead must be first
-            isValid  = JudgeType(xml, ref pointFocused, ref type, ref body);
-            if (isValid != true) return false;
+            //only openingTagBody must be first
+            if (type != Type.OpeningTag)    return false;
 
-            if (type != Type.StartingElement)
-            {
-                Console.WriteLine("head must be first, so");
-                return false;
-            }
-            startingElements.Push(body);
+            openingTags.Push(body);
             types.Push(type);
 
-            while (startingElements.Count > 0)
+            while (openingTags.Count > 0)
             {
                 pointFocused++;
-                isValid = JudgeType(xml, ref pointFocused,ref type, ref body);
+                body = "";
+                isValid = AssignString(xml, ref pointFocused,ref type, ref body);
                 if (isValid != true) return false;
                 Type typeBefore = types.Peek();
 
                 switch (type)
                 {
-                    case Type.StartingElement:
-                        //Contain must be between StartingElement and EndingElement
-                        //have to change point
-                        /*
-                        if (typeBefore == Type.Contain)
-                        {
-                            Console.WriteLine("Contain must be between StartingElement and EndingElement , so");
-                            return false;
-                        }
-                        */
-                        startingElements.Push(body);
+                    case Type.OpeningTag:
+                        //Content must be nested for same tags
+                        if (typeBefore == Type.Content) return false;
+                        openingTags.Push(body);
                         break;
 
-                    case Type.EndingElement:
-                        isValid = IsEndingElementValid(body, ref startingElements);
+                    case Type.ClosingTag:
+                        isValid = IsValidClosingTag(body, ref openingTags);
                         if (isValid != true) return false;    
                         break;
 
-                    case Type.Contain:
-                        //Contain must be between StartingElement and EndingElement
-                        //have to change point
-                        /*
-                        if (typeBefore != Type.StartingElement)
-                        {
-                            Console.WriteLine("Contain must be between StartingElement and EndingElement, so");
-                            return false;
-                        }
-                        */
+                    case Type.Content:
+                        //Content must be nested for same tags
+                        if (typeBefore != Type.OpeningTag) return false;                    
                         break;
                 }
-
                 types.Push(type);
             }
 
-            if (pointFocused + 1 != xml.Length)
-            {
-                Console.WriteLine("First tag must be pushed lastly, so");
-                return false;
-            }
+            //First tagBody must be pushed lastly
+            if (pointFocused + 1 != xml.Length) return false;
 
             return true;
         }
 
-        private bool IsEndingElementValid(string tagTail, ref Stack<string> stack)
+        /// <summary>
+        /// Match with closing tag and opening tag which is pushed lately
+        /// </summary>
+        /// <param name="closingTagBody"></param>
+        /// <param name="stack">which is pushed only opening tag</param>
+        /// <returns>no ploblem : true</returns>
+        private bool IsValidClosingTag(string closingTagBody, ref Stack<string> stack)
         {
-            string tagHead = stack.Pop();
-            if (tagHead != tagTail)
-            {
-                Console.WriteLine("Starting element must match with ending element, so");
-                return false;
-            }
+            string openingTagBody = stack.Pop();
+            //only openingTagBody must be first
+            if (openingTagBody != closingTagBody) return false;
+
             return true;
         }
 
-        private bool JudgeType(string xml, ref int pointFocused,ref Type type, ref string str)
+        /// <summary>
+        /// Assign string to tag or content 
+        /// </summary>
+        /// <param name="xml"></param>
+        /// <param name="pointFocused">number of letters focused now</param>
+        /// <param name="type">type of string focused now</param>
+        /// <param name="body">body of string focused now</param>
+        /// <returns>no ploblem : true</returns>
+        private bool AssignString(string xml, ref int pointFocused,ref Type type, ref string body)
         {
-            bool isTypeValid;
-
-            if (pointFocused >= xml.Length)
-            {
-                Console.WriteLine("XML string must start with head and finish with tail, so");
-                return false;
-            }
+            //XML string must start with opening tagBody and finish with closing tagBody
+            if (pointFocused >= xml.Length) return false;
 
             if (xml[pointFocused] == '<')
             {
-
-                isTypeValid = JudgeTagType(xml, ref pointFocused, ref type, ref str);
-                if( isTypeValid != true )   return false;
+                bool isTagTypeValid = AssignTagType(xml, ref pointFocused, ref type, ref body);
+                if( isTagTypeValid != true )   return false;
             }
             else
             {
 
-                isTypeValid  = FindContain(xml, ref pointFocused, ref str);
-                if (isTypeValid != true) return false;
-                type = Type.Contain;
+                bool isContentValid  = FindContent(xml, ref pointFocused, ref body);
+                if (isContentValid != true) return false;
+                type = Type.Content;
             }
-
+            
             return true;
         }
 
-        private bool JudgeTagType(string xml, ref int pointFocused, ref Type tagType, ref string tag)
+        /// <summary>
+        /// Assign tag to opening tag or closing tag
+        /// </summary>
+        /// <param name="xml"></param>
+        /// <param name="pointFocused"></param>
+        /// <param name="tagType">type of tag focused now</param>
+        /// <param name="tagBody">body of tag focused now</param>
+        /// <returns>no ploblem : true</returns>
+        private bool AssignTagType(string xml, ref int pointFocused, ref Type tagType, ref string tagBody)
         {
             bool isTagValid;
 
             if (xml[pointFocused + 1] == '/')
             {
-                //tag doesn't include <,>,/
-                pointFocused += pointFocused + 2;
-                isTagValid = FindTag(xml, ref pointFocused, ref tag);
+                //tagBody doesn't include '<','>','/'
+                pointFocused = pointFocused + 2;
+                isTagValid = FindTag(xml, ref pointFocused, ref tagBody);
                 if(isTagValid != true)  return false;
-                tagType = Type.EndingElement;
+                tagType = Type.ClosingTag;
 
             }
             else
             {
                 pointFocused++;
-                isTagValid= FindTag(xml, ref pointFocused, ref tag);
+                isTagValid= FindTag(xml, ref pointFocused, ref tagBody);
                 if (isTagValid != true) return false;
-                tagType = Type.StartingElement;
+                tagType = Type.OpeningTag;
 
             }
 
             return true;
         }
 
-        private bool FindTag(string xml, ref int pointFocused, ref string tag)
+        /// <summary>
+        /// Find tag's body
+        /// </summary>
+        /// <param name="xml"></param>
+        /// <param name="pointFocused"></param>
+        /// <param name="tagBody"></param>
+        /// <returns>no ploblem : true</returns>
+        private bool FindTag(string xml, ref int pointFocused, ref string tagBody)
         {
+           
             while (xml[pointFocused] != '>')
             {
-                //to deal with no '>'
-                if (pointFocused >= xml.Length - 1)
-                {
-                    Console.WriteLine("Tag must finish with '>' , so");
-                    return false;
-                }
-                tag += xml[pointFocused];
+                //Tag must finish in '>'
+                if (pointFocused >= xml.Length - 1) return false;
+
+                tagBody += xml[pointFocused];
                 pointFocused++;
+                
             }
 
-            //return the position of '>'
             return true;
         }
 
-        private bool FindContain(string xml, ref int pointFocused, ref string contain)
+        /// <summary>
+        /// Find content's body
+        /// </summary>
+        /// <param name="xml"></param>
+        /// <param name="pointFocused"></param>
+        /// <param name="content"></param>
+        /// <returns>no ploblem : true</returns>
+        private bool FindContent(string xml, ref int pointFocused, ref string content)
         {
             while (xml[pointFocused] != '<')
             {
-                contain += xml[pointFocused];
+                //Content must not include '>' but '/' is ok
+                if (xml[pointFocused] == '>') return false;
+                content += xml[pointFocused];
                 pointFocused++;
-                if (pointFocused >= xml.Length)
-                {
-                    Console.WriteLine("Contain must not be end, so");
-                    return false;
-                }
+                //Content must not be end
+                if (pointFocused >= xml.Length) return false;
             }
+
+            //pointFocused is left on '<'
             pointFocused = pointFocused - 1;
-            //return the position next to '<'
+            
             return true;
         }
 
-  
     }
 }
