@@ -1,0 +1,28 @@
+﻿ ,invalid
+h,invalid
+hello,invalid
+<>,invalid
+hello<head></head>,invalid
+<head>,invalid
+</head>,invalid
+<head,invalid
+<head></head>,valid
+<head></haed>,invalid
+<head> </head>,valid
+<hea d></head>,invalid
+<he ad>hello</he ad>,invalid
+</head><//head>,invalid
+<head>hello,invalid
+<head>hello</head>world,invalid
+<head>hello world</head>,valid
+<hea/d>hello world</hea/d>,valid
+<head>hello<element1></element1></head>,valid
+<head><element1>HelloWorld</head></element1>,invalid
+<head><element1>-^\@[;:}./\=~|`{+*}?_!"#$%&'()"</element1></head>,valid
+<head><element1>1234567890</element1></head>,valid
+<124></124>,valid
+<=~|></=~|>,valid
+<head><element1>hello </element1>world</head>,valid
+<head><element1>hello</element1> <element2>world</element2></head>,valid
+<head><element1>hello<element2> </element2>world</element1></head>,valid
+<head><element1>hello<element1> </element1>world</element1></head>,valid
