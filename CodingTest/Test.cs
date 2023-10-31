@@ -16,7 +16,7 @@ namespace TakeHomeCodingTest
             int numberTestCase = 0;
 
             //read file and test
-            using (StreamReader reader = new StreamReader(@"..\..\..\testcase.csv"))
+            using (StreamReader reader = new StreamReader(@"..\..\..\TestCase.csv"))
             {
                 while (!reader.EndOfStream)
                 {
@@ -48,12 +48,14 @@ namespace TakeHomeCodingTest
             //show result
             int numberpassed = numberTestCase - numberfailed;
             Console.WriteLine("result : {0}/{1}", numberpassed, numberTestCase);
-            Console.WriteLine("here is fail cases");
-            for (int i = 0; i < numberfailed; i++)
+            if (numberfailed > 0)
             {
-                Console.WriteLine(failCase[i]);
+                Console.WriteLine("here is fail cases");
+                for (int i = 0; i < numberfailed; i++)
+                {
+                    Console.WriteLine(failCase[i]);
+                }
             }
-
         }
     }
 }
